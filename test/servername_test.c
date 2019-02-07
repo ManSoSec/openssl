@@ -186,7 +186,7 @@ static int server_setup_sni(void)
 
     if (!TEST_true(create_ssl_ctx_pair(TLS_server_method(),
                                        TLS_client_method(),
-                                       TLS1_VERSION, TLS_MAX_VERSION,
+                                       TLS1_VERSION, 0,
                                        &sctx, &cctx, cert, privkey))
             || !TEST_true(create_ssl_objects(sctx, cctx, &serverssl, &clientssl,
                                              NULL, NULL)))
@@ -203,7 +203,7 @@ static int server_setup_sni(void)
         /* SNI should have been cleared during handshake */
         goto end;
     }
-    
+
     testresult = 1;
 end:
     SSL_free(serverssl);

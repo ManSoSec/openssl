@@ -53,6 +53,20 @@ NON_EMPTY_TRANSLATION_UNIT
 #  define LOG_ERR       2
 # endif
 
+# if defined(OPENSSL_SYS_VXWORKS)
+/* not supported */
+int setpgid(pid_t pid, pid_t pgid)
+{
+    errno = ENOSYS;
+    return 0;
+}
+/* not supported */
+pid_t fork(void)
+{
+    errno = ENOSYS;
+    return (pid_t) -1;
+}
+# endif
 /* Maximum leeway in validity period: default 5 minutes */
 # define MAX_VALIDITY_PERIOD    (5 * 60)
 
@@ -863,6 +877,7 @@ static void killall(int ret, pid_t *kidpids)
     for (i = 0; i < multi; ++i)
         if (kidpids[i] != 0)
             (void)kill(kidpids[i], SIGTERM);
+    OPENSSL_free(kidpids);
     sleep(1);
     exit(ret);
 }
@@ -977,7 +992,6 @@ static void spawn_loop(void)
     }
 
     /* The loop above can only break on termsig */
-    OPENSSL_free(kidpids);
     syslog(LOG_INFO, "terminating on signal: %d", termsig);
     killall(0, kidpids);
 }

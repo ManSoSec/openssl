@@ -245,6 +245,7 @@ int (*EVP_CIPHER_meth_get_ctrl(const EVP_CIPHER *cipher))(EVP_CIPHER_CTX *,
 # define         EVP_CIPH_XTS_MODE               0x10001
 # define         EVP_CIPH_WRAP_MODE              0x10002
 # define         EVP_CIPH_OCB_MODE               0x10003
+# define         EVP_CIPH_SIV_MODE               0x10004
 # define         EVP_CIPH_MODE                   0xF0007
 /* Set if variable length cipher */
 # define         EVP_CIPH_VARIABLE_LENGTH        0x8
@@ -352,6 +353,8 @@ int (*EVP_CIPHER_meth_get_ctrl(const EVP_CIPHER *cipher))(EVP_CIPHER_CTX *,
 # define         EVP_CTRL_SET_PIPELINE_INPUT_LENS        0x24
 /* Get the IV used by the cipher */
 # define         EVP_CTRL_GET_IV                         0x25
+/* Tell the cipher it's doing a speed test (SIV disallows multiple ops) */
+# define         EVP_CTRL_SET_SPEED                      0x26
 
 /* Padding modes */
 #define EVP_PADDING_PKCS7       1
@@ -858,6 +861,11 @@ const EVP_CIPHER *EVP_aes_128_cbc_hmac_sha1(void);
 const EVP_CIPHER *EVP_aes_256_cbc_hmac_sha1(void);
 const EVP_CIPHER *EVP_aes_128_cbc_hmac_sha256(void);
 const EVP_CIPHER *EVP_aes_256_cbc_hmac_sha256(void);
+# ifndef OPENSSL_NO_SIV
+const EVP_CIPHER *EVP_aes_128_siv(void);
+const EVP_CIPHER *EVP_aes_192_siv(void);
+const EVP_CIPHER *EVP_aes_256_siv(void);
+# endif
 # ifndef OPENSSL_NO_ARIA
 const EVP_CIPHER *EVP_aria_128_ecb(void);
 const EVP_CIPHER *EVP_aria_128_cbc(void);
@@ -950,14 +958,9 @@ const EVP_CIPHER *EVP_sm4_ctr(void);
                         | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL)
 
 #  ifdef OPENSSL_LOAD_CONF
-#   define OpenSSL_add_all_algorithms() \
-    OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS \
-                        | OPENSSL_INIT_ADD_ALL_DIGESTS \
-                        | OPENSSL_INIT_LOAD_CONFIG, NULL)
+#   define OpenSSL_add_all_algorithms() OPENSSL_add_all_algorithms_conf()
 #  else
-#   define OpenSSL_add_all_algorithms() \
-    OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS \
-                        | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL)
+#   define OpenSSL_add_all_algorithms() OPENSSL_add_all_algorithms_noconf()
 #  endif
 
 #  define OpenSSL_add_all_ciphers() \
@@ -990,6 +993,8 @@ void EVP_MD_do_all_sorted(void (*fn)
 
 /* MAC stuff */
 
+# define EVP_MAC_BLAKE2B        NID_blake2bmac
+# define EVP_MAC_BLAKE2S        NID_blake2smac
 # define EVP_MAC_CMAC           NID_cmac
 # define EVP_MAC_GMAC           NID_gmac
 # define EVP_MAC_HMAC           NID_hmac
@@ -1034,6 +1039,7 @@ void EVP_MAC_do_all_sorted(void (*fn)
 # define EVP_MAC_CTRL_SET_IV            0x07 /* unsigned char *, size_t */
 # define EVP_MAC_CTRL_SET_CUSTOM        0x08 /* unsigned char *, size_t */
 # define EVP_MAC_CTRL_SET_XOF           0x09 /* int */
+# define EVP_MAC_CTRL_SET_SALT          0x0a /* unsigned char *, size_t */
 
 /* PKEY stuff */
 int EVP_PKEY_decrypt_old(unsigned char *dec_key,
@@ -1047,7 +1053,7 @@ int EVP_PKEY_id(const EVP_PKEY *pkey);
 int EVP_PKEY_base_id(const EVP_PKEY *pkey);
 int EVP_PKEY_bits(const EVP_PKEY *pkey);
 int EVP_PKEY_security_bits(const EVP_PKEY *pkey);
-int EVP_PKEY_size(EVP_PKEY *pkey);
+int EVP_PKEY_size(const EVP_PKEY *pkey);
 int EVP_PKEY_set_type(EVP_PKEY *pkey, int type);
 int EVP_PKEY_set_type_str(EVP_PKEY *pkey, const char *str, int len);
 int EVP_PKEY_set_alias_type(EVP_PKEY *pkey, int type);
